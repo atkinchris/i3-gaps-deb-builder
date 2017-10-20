@@ -8,23 +8,16 @@ cd i3
 TAG=$(git describe --tags)
 git checkout $TAG
 
-# Build the project
-echo "Building $TAG"
-autoreconf --force --install
-rm -rf build
-mkdir -p build && cd build
-../configure --prefix=/usr --sysconfdir=/etc --disable-sanitizers
-make
-mkdir -p /tmp/contents
-make DESTDIR=/tmp/contents install
+# Fix rules
+cat <<EOF >>debian/rules
+override_dh_install:
+override_dh_installdocs:
+override_dh_installman:
+	dh_install -O--parallel
+EOF
 
-# Build the package
-fpm -s dir -t deb \
-  -C /tmp/contents \
-  --name i3-gaps \
-  --version $TAG \
-  --iteration 1 \
-  --description "i3-gaps – i3 with more features" \
-  .
+# Build package
+dpkg-buildpackage -us -uc
 
-cp *.deb /output
+# Copy package to output
+cp ../*.deb /output
